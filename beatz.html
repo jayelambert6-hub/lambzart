@@ -233,58 +233,6 @@ user-select: none !important;
 <script>
 // iOS Safari click fix - touchend fires click manually for non-scrolling taps
 (function(){
-  var _sx=0,_sy=0;
-  document.addEventListener('touchstart',function(e){
-    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;
-  },{passive:true});
-  document.addEventListener('touchend',function(e){
-    var dx=Math.abs(e.changedTouches[0].clientX-_sx);
-    var dy=Math.abs(e.changedTouches[0].clientY-_sy);
-    if(dx>10||dy>10) return; // was a scroll, ignore
-    var el=e.target;
-    // Walk up to find clickable element
-    for(var i=0;i<5;i++){
-      if(!el||el===document.body) break;
-      var tag=el.tagName;
-      var cls=el.className||'';
-      var isClickable = tag==='BUTTON'||tag==='A'||tag==='SELECT'||tag==='INPUT'||tag==='LABEL'||
-        cls.indexOf('gpill')>=0||cls.indexOf('abtn')>=0||cls.indexOf('cell')>=0||
-        cls.indexOf('lpill')>=0||cls.indexOf('ltab')>=0||cls.indexOf('mtab')>=0||
-        cls.indexOf('mitem')>=0||cls.indexOf('star')>=0||cls.indexOf('schip')>=0||
-        cls.indexOf('memitem')>=0||cls.indexOf('tbtn2')>=0||cls.indexOf('gcbtn')>=0||
-        cls.indexOf('expbtn')>=0||cls.indexOf('ppill')>=0||cls.indexOf('sadd2')>=0||
-        cls.indexOf('sitem')>=0||cls.indexOf('secitem')>=0||cls.indexOf('add-trk')>=0||
-        el.id==='hbg'||el.id==='lov'||el.id==='bAddTrk';
-      if(isClickable){
-        e.preventDefault();
-        el.click();
-        return;
-      }
-      el=el.parentElement;
-    }
-  },{passive:false});
-})();
-</script>
-
-<div id="dbg" style="position:fixed;top:60px;left:5%;right:5%;background:rgba(255,50,0,.97);color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;z-index:9999;display:none;word-break:break-all;line-height:1.4"></div>
-<script>
-function showDbg(msg, color) {
-  var d=document.getElementById('dbg');
-  d.style.background = color||'rgba(255,50,0,.97)';
-  d.style.display='block';
-  d.textContent=msg;
-  clearTimeout(window._dt);
-  window._dt=setTimeout(function(){d.style.display='none';},4000);
-}
-// Catch ALL JS errors
-window.onerror = function(msg,src,line,col,err) {
-  showDbg('ERROR: '+msg+' (line '+line+')', 'rgba(200,0,0,.97)');
-  return false;
-};
-window.onunhandledrejection = function(e) {
-  showDbg('PROMISE ERROR: '+e.reason, 'rgba(200,0,0,.97)');
-};
-var _sx=0,_sy=0;
 document.addEventListener('touchstart',function(e){_sx=e.touches[0].clientX;_sy=e.touches[0].clientY;},{passive:true});
 document.addEventListener('touchend',function(e){
   var dx=Math.abs(e.changedTouches[0].clientX-_sx);
@@ -1186,9 +1134,6 @@ document.getElementById('libOv').classList.toggle('on',libOpen);
 document.getElementById('hbg').classList.toggle('open',libOpen);
 }
 function closeLib() {
-libOpen=false;
-document.getElementById('library').classList.remove('open');
-document.getElementById('libOv').classList.remove('on');
 document.getElementById('hbg').classList.remove('open');
 }
 function setLibGenre(g) {
@@ -1305,11 +1250,11 @@ html+='<div class="snd-item" data-sid="'+s.id+'">'
 });
 el.innerHTML=html;
 el.querySelectorAll('[data-prev]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();prevSamp(b.dataset.prev);});});
-el.querySelectorAll('[data-del-s]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();deleteSample(b.dataset.delS);});});
+el.querySelectorAll('[data-del-s]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();deleteSample(b.dataset['del-s']);});});
 el.querySelectorAll('[data-add-s]').forEach(function(span){
 span.addEventListener('click',function(e){
 e.stopPropagation();
-var s=state.importedSamples.find(function(x){return x.id===span.dataset.addS;});
+var s=state.importedSamples.find(function(x){return x.id===span.dataset['add-s'];});
 if(!s) return;
 var def=INST_DEFS.find(function(d){return d.id===s.role;})||{id:s.role,n:s.name,icon:'S',color:s.color,sub:s.genre,drum:false};
 addTrackFromDef(def,s.id);
