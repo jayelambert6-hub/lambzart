@@ -1160,6 +1160,38 @@ var area=document.getElementById('libImportArea');
 area.innerHTML='<label class="imp-btn" style="border-color:'+c.color+';color:'+c.color+'"><input type="file" multiple accept="audio/*" '+(c.dir?'webkitdirectory':'')+' id="libFileInp"><span>'+c.icon+'</span> '+c.label+'</label>';
 document.getElementById('libFileInp').addEventListener('change',function(){importSamples(this.files,state.libCat);});
 }
+// -- IndexedDB persistence --
+var DB = null;
+function openDB(cb) {
+  if (DB) { cb(DB); return; }
+  var req = indexedDB.open("beatforge", 1);
+  req.onupgradeneeded = function(e) { e.target.result.createObjectStore("samples", {keyPath:"id"}); };
+  req.onsuccess = function(e) { DB = e.target.result; cb(DB); };
+  req.onerror = function() { console.warn("IndexedDB failed"); };
+}
+function saveToDB(sample) {
+  openDB(function(db) {
+    var tx = db.transaction("samples","readwrite");
+    tx.objectStore("samples").put({id:sample.id,name:sample.name,role:sample.role,category:sample.category,genre:sample.genre,bpm:sample.bpm,key:sample.key,folder:sample.folder,color:sample.color,buf:sample.buf});
+  });
+}
+function deleteFromDB(id) {
+  openDB(function(db) {
+    db.transaction("samples","readwrite").objectStore("samples").delete(id);
+  });
+}
+function loadFromDB() {
+  openDB(function(db) {
+    db.transaction("samples","readonly").objectStore("samples").getAll().onsuccess = function(e) {
+      e.target.result.forEach(function(s) {
+        if (!state.importedSamples.find(function(x){return x.id===s.id;})) {
+          state.importedSamples.push(s);
+        }
+      });
+      renderLib();
+    };
+  });
+}
 function importSamples(files, category) {
 category=category||'sample'; if(!files||!files.length) return;
 initAC();
@@ -1195,13 +1227,14 @@ else if(/hiphop/.test(fn)) genre='hiphop';
 var bpmM=fn.match(/(\d{2,3})bpm/), bpm=bpmM?parseInt(bpmM[1]):state.bpm;
 var keyM=fn.match(/[\s_-]([a-g]#?b?)[\s*-]/i), key=keyM?keyM[1].toUpperCase():state.key;
 state.importedSamples.push({id:id,name:f.name.replace(/.[^/.]+$/,''),buf:buf,role:role,category:category,genre:genre,bpm:bpm,key:key,folder:folder,color:ROLE_COLORS[role]||'#98989e'});
+         saveToDB(state.importedSamples[state.importedSamples.length-1]);
 renderLib();
 }, function(){console.warn('decode fail',f.name);});
 };
 reader.readAsArrayBuffer(f);
 });
 }
-function deleteSample(id) {
+function deleteSample(id) { deleteFromDB(id);
 state.importedSamples=state.importedSamples.filter(function(s){return s.id!==id;});
 tracks.forEach(function(t){if(t.sampleId===id) t.sampleId=null;});
 renderLib(); toast('Sample removed');
@@ -1515,6 +1548,7 @@ if(e.code==='Escape'){stopAll();closeLib();closeModal('addModal');closeModal('ex
 // - Init -
 document.addEventListener('DOMContentLoaded', function() {
 initEvents();
+  loadFromDB();
 renderLibImport();
 renderLib();
 renderSecStrip();
