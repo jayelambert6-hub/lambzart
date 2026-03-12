@@ -197,12 +197,125 @@ input,select,button{font-family:var(--ui)}
 .exp-bar{height:100%;background:var(--green);border-radius:2px;width:0%;transition:width .4s}
 .toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(28,28,30,.96);border:1px solid var(--border2);color:var(--txt);padding:7px 16px;border-radius:8px;font-size:11px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.sh{opacity:1;transform:translateX(-50%) translateY(0)}
+
+- { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  button, .gpill, .gpill, .abtn, .hbg, .lctab, .lg-pill, .add-trk,
+  .snd-item, .snd-add, .snd-play, .cell, .modal-item, .star,
+  .sec-chip, .sec-add, .trk-card, .tc-btn, .mem-item, .mtab,
+  .exp-btn, .modal-close, .pop-pill, .pop-close, .schip-lk,
+  .schip-del, .sec-lk-btn, .sec-del, .mimic-go, .mimic-drop,
+  label { cursor: pointer; touch-action: manipulation; }
+
+/* iOS touch fix */
+button, .gpill, .abtn, .hbg, .lctab, .lg-pill, .add-trk,
+.snd-add, .snd-play, .cell, .modal-item, .star, .sec-chip,
+.sec-add, .tc-btn, .mem-item, .mtab, .exp-btn, .modal-close,
+.pop-pill, .pop-close, .mimic-go, label, select,
+[data-sec], [data-sec-lk], [data-sec-del], [data-solo],
+[data-mute], [data-lock], [data-sfx], [data-flt], [data-del],
+[data-prev], [data-del-s], [data-add-s], [data-inst-idx],
+[data-samp-id], [data-mid], [data-genre], [data-lgenre],
+[data-cat], [data-tab], [data-r], .ibtn, .tbtn2, .gcbtn,
+.lpill, .ltab, .schip, .secitem, .seclkb, .secdel2,
+.sclk, .scdel, .sadd2, .snd-item, .mitem, .memitem, .sbtn,
+.abtn, .mgo, .mdrop, .sadd, div[onclick] {
+cursor: pointer !important;
+touch-action: manipulation !important;
+-webkit-user-select: none !important;
+user-select: none !important;
+}
+
+- { -webkit-tap-highlight-color: transparent; }
+
 </style>
 </head>
-<body><div id="_err" style="display:none;position:fixed;top:0;left:0;right:0;background:#ff453a;color:#fff;font-size:11px;padding:8px 12px;z-index:9999;font-family:monospace"></div>
+<body>
+<script>
+// iOS Safari click fix - touchend fires click manually for non-scrolling taps
+(function(){
+  var _sx=0,_sy=0;
+  document.addEventListener('touchstart',function(e){
+    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    var dx=Math.abs(e.changedTouches[0].clientX-_sx);
+    var dy=Math.abs(e.changedTouches[0].clientY-_sy);
+    if(dx>10||dy>10) return; // was a scroll, ignore
+    var el=e.target;
+    // Walk up to find clickable element
+    for(var i=0;i<5;i++){
+      if(!el||el===document.body) break;
+      var tag=el.tagName;
+      var cls=el.className||'';
+      var isClickable = tag==='BUTTON'||tag==='A'||tag==='SELECT'||tag==='INPUT'||tag==='LABEL'||
+        cls.indexOf('gpill')>=0||cls.indexOf('abtn')>=0||cls.indexOf('cell')>=0||
+        cls.indexOf('lpill')>=0||cls.indexOf('ltab')>=0||cls.indexOf('mtab')>=0||
+        cls.indexOf('mitem')>=0||cls.indexOf('star')>=0||cls.indexOf('schip')>=0||
+        cls.indexOf('memitem')>=0||cls.indexOf('tbtn2')>=0||cls.indexOf('gcbtn')>=0||
+        cls.indexOf('expbtn')>=0||cls.indexOf('ppill')>=0||cls.indexOf('sadd2')>=0||
+        cls.indexOf('sitem')>=0||cls.indexOf('secitem')>=0||cls.indexOf('add-trk')>=0||
+        el.id==='hbg'||el.id==='lov'||el.id==='bAddTrk';
+      if(isClickable){
+        e.preventDefault();
+        el.click();
+        return;
+      }
+      el=el.parentElement;
+    }
+  },{passive:false});
+})();
+</script>
+
+<div id="dbg" style="position:fixed;top:60px;left:5%;right:5%;background:rgba(255,50,0,.97);color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;z-index:9999;display:none;word-break:break-all;line-height:1.4"></div>
+<script>
+function showDbg(msg, color) {
+  var d=document.getElementById('dbg');
+  d.style.background = color||'rgba(255,50,0,.97)';
+  d.style.display='block';
+  d.textContent=msg;
+  clearTimeout(window._dt);
+  window._dt=setTimeout(function(){d.style.display='none';},4000);
+}
+// Catch ALL JS errors
+window.onerror = function(msg,src,line,col,err) {
+  showDbg('ERROR: '+msg+' (line '+line+')', 'rgba(200,0,0,.97)');
+  return false;
+};
+window.onunhandledrejection = function(e) {
+  showDbg('PROMISE ERROR: '+e.reason, 'rgba(200,0,0,.97)');
+};
+var _sx=0,_sy=0;
+document.addEventListener('touchstart',function(e){_sx=e.touches[0].clientX;_sy=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',function(e){
+  var dx=Math.abs(e.changedTouches[0].clientX-_sx);
+  var dy=Math.abs(e.changedTouches[0].clientY-_sy);
+  if(dx>10||dy>10) return;
+  var el=e.target;
+  for(var i=0;i<5;i++){
+    if(!el||el===document.body) break;
+    var tag=el.tagName, cls=el.className||'';
+    var clickable=tag==='BUTTON'||tag==='A'||tag==='SELECT'||tag==='INPUT'||tag==='LABEL'||
+      cls.indexOf('gpill')>=0||cls.indexOf('abtn')>=0||cls.indexOf('cell')>=0||
+      cls.indexOf('lpill')>=0||cls.indexOf('ltab')>=0||cls.indexOf('mtab')>=0||
+      cls.indexOf('mitem')>=0||cls.indexOf('star')>=0||cls.indexOf('schip')>=0||
+      cls.indexOf('memitem')>=0||cls.indexOf('tbtn2')>=0||cls.indexOf('gcbtn')>=0||
+      cls.indexOf('expbtn')>=0||cls.indexOf('ppill')>=0||cls.indexOf('sadd2')>=0||
+      cls.indexOf('sitem')>=0||cls.indexOf('secitem')>=0||cls.indexOf('add-trk')>=0||
+      el.id==='hbg'||el.id==='lov'||el.id==='btnAddTrack';
+    if(clickable){
+      e.preventDefault();
+      showDbg('CLICK->'+el.tagName+' #'+el.id+' .'+cls.substring(0,20), 'rgba(0,150,0,.97)');
+      el.click();
+      return;
+    }
+    el=el.parentElement;
+  }
+},{passive:false});
+</script>
+<div id="_err" style="display:none;position:fixed;top:0;left:0;right:0;background:#ff453a;color:#fff;font-size:11px;padding:8px 12px;z-index:9999;font-family:monospace"></div>
 
 <div class="hdr">
-  <div class="hbg" id="hbg"><span></span><span></span><span></span></div>
+  <button class="hbg" id="hbg" style="background:none;border:none;"><span></span><span></span><span></span></button>
   <div class="logo">BEAT<span>FORGE</span></div>
   <div class="transport">
     <button class="tbtn" id="btnPrevSec">&#9198;</button>
@@ -211,10 +324,10 @@ input,select,button{font-family:var(--ui)}
     <button class="tbtn" id="btnNextSec">&#9197;</button>
   </div>
   <div class="genres" id="genreBar">
-    <div class="gpill on" data-genre="trap">TRAP</div>
-    <div class="gpill" data-genre="rnb">R&amp;B</div>
-    <div class="gpill" data-genre="lofi">LO-FI</div>
-    <div class="gpill" data-genre="hiphop">HIP HOP</div>
+    <button class="gpill on" data-genre="trap" style="background:none;">TRAP</button>
+    <button class="gpill" data-genre="rnb" style="background:none;">R&amp;B</button>
+    <button class="gpill" data-genre="lofi" style="background:none;">LO-FI</button>
+    <button class="gpill" data-genre="hiphop" style="background:none;">HIP HOP</button>
   </div>
   <div class="hactions">
     <button class="abtn gen" id="btnGen">&#9889; Generate</button>
@@ -408,9 +521,9 @@ input,select,button{font-family:var(--ui)}
       <div class="msec-title">BASS</div><div id="addInstBass"></div>
       <div class="msec-title">MELODIC</div><div id="addInstMel"></div>
     </div>
-    <div class="mstep" id="addStepDrums"><div id="addDrumList"></div></div>
-    <div class="mstep" id="addStepKeys"><div id="addKeyList"></div></div>
-    <div class="mstep" id="addStepSamps"><div id="addSampList"></div></div>
+    <div class="mstep" id="addStepDrums"><div id="addDrumList"></button></div>
+    <div class="mstep" id="addStepKeys"><div id="addKeyList"></button></div>
+    <div class="mstep" id="addStepSamps"><div id="addSampList"></button></div>
     <div class="mstep" id="addStepSfx2"><div id="addSfxList"></div></div>
   </div>
 </div>
@@ -440,7 +553,7 @@ return false;
 (function() {
 ‘use strict’;
 
-// ── Audio ──
+// – Audio –
 var AC = null, MG = null;
 function initAC() {
 if (AC) return;
@@ -451,7 +564,7 @@ MG.connect(AC.destination);
 }
 function resumeAC() { if (AC && AC.state === ‘suspended’) AC.resume(); }
 
-// ── State ──
+// – State –
 var state = {
 bpm: 140, key: ‘C’, scale: ‘minor’, genre: ‘trap’,
 steps: 32, swing: 30, velVar: 40, drift: 12, density: 5,
@@ -502,7 +615,7 @@ var INST_DEFS = [
 {id:‘atm’,  n:‘Atmosphere’,  icon:‘A’, sub:‘Ambient texture’, color:’#4a9eff’, drum:false}
 ];
 
-// ── Synth ──
+// – Synth –
 function mkDrum(type, vel, t) {
 if (!AC) return;
 var v = vel/127, g = AC.createGain(); g.connect(MG); g.gain.value = v;
@@ -572,7 +685,7 @@ var g = AC.createGain(); g.gain.value = (vel/127) * tr.vol;
 src.connect(g); g.connect(MG); src.start(t); return true;
 }
 
-// ── Scheduler ──
+// – Scheduler –
 var playing = false, curStep = 0, nextT = 0, schedTmr = null;
 var AHEAD = 0.1, LOOK = 25;
 function sdur() { return (60/state.bpm)/4; }
@@ -620,14 +733,14 @@ document.querySelectorAll(’.cell’).forEach(function(c) { c.classList.remove(
 document.getElementById(‘playhead’).style.left = ‘-4px’;
 }
 
-// ── Scale ──
+// – Scale –
 function getScale() {
 var roots = {C:0,‘C#’:1,D:2,‘D#’:3,E:4,F:5,‘F#’:6,G:7,‘G#’:8,A:9,‘A#’:10,B:11};
 var root = roots[state.key] || 0;
 return (SCALES[state.scale] || SCALES.minor).map(function(n) { return (n+root)%12; });
 }
 
-// ── Sample picking ──
+// – Sample picking –
 function pickSample(tr) {
 if (!state.sampleMode) return null;
 var pool;
@@ -641,7 +754,7 @@ if (!pool.length) pool = state.importedSamples.filter(function(s) { return s.rol
 return pool.length ? pool[rnd(pool.length)] : null;
 }
 
-// ── Pattern generation ──
+// – Pattern generation –
 function genPat(tr) {
 var S = state.steps, gc = GC[state.genre], den = state.density/10;
 var p = [], pit = [], i;
@@ -719,7 +832,7 @@ renderGrid(); updateGenInfo(); toast(‘Regen from memory’);
 } else { genBeat(); }
 }
 
-// ── Mimic ──
+// – Mimic –
 function loadMimicFile(files) {
 if (!files || !files.length) return;
 initAC();
@@ -795,7 +908,7 @@ if (state.sampleMode) { var s=pickSample(tr); if(s) tr.sampleId=s.id; }
 renderGrid(); updateGenInfo(); toast(’Mimic applied: ’+d.bpm+’bpm ’+d.key);
 }
 
-// ── Tracks ──
+// – Tracks –
 function mkTrack(def, sampleId) {
 var samp = sampleId ? state.importedSamples.find(function(x){return x.id===sampleId;}) : null;
 return {
@@ -860,7 +973,7 @@ el.querySelectorAll(’[data-flt]’).forEach(function(b) { b.addEventListener(�
 el.querySelectorAll(’[data-trk]’).forEach(function(inp) { inp.addEventListener(‘change’, function(){renameTrack(inp.dataset.trk, inp.value);}); });
 }
 
-// ── Grid ──
+// – Grid –
 function getCellW() { return Math.round(26*state.zoomLevel); }
 function renderGrid() {
 var gi = document.getElementById(‘gridInner’);
@@ -933,7 +1046,7 @@ while(tr.pit.length<n){tr.pit.push(60);} tr.pit=tr.pit.slice(0,n);
 renderGrid(); updateGenInfo();
 }
 
-// ── Sections ──
+// – Sections –
 var dragSecIdx = null;
 function renderSecStrip() {
 var strip = document.getElementById(‘secStrip’);
@@ -995,7 +1108,7 @@ loop:[{n:‘LOOP’,l:8}]
 if (T[v]) { SECS=T[v].map(function(s,i){return Object.assign({},s,{lk:false,color:SEC_COLORS[i%SEC_COLORS.length]});}); state.curSec=0; renderSecStrip(); toast(’Template: ’+v); }
 }
 
-// ── Controls ──
+// – Controls –
 function setBPM(v) {
 state.bpm = v;
 document.getElementById(‘bpmN’).textContent = v;
@@ -1035,7 +1148,7 @@ toast(sl ? ‘Structure locked’ : ‘Structure unlocked’);
 updateGenInfo();
 }
 
-// ── Rate & Memory ──
+// – Rate & Memory –
 function rate(n) {
 state.rating=n;
 document.querySelectorAll(’.star’).forEach(function(s,i){s.classList.toggle(‘on’,i<n);});
@@ -1064,7 +1177,7 @@ tracks.forEach(function(t,i){if(b.pats[i]) t.pat=b.pats[i].slice();});
 renderGrid(); toast(’Loaded: ’+b.name);
 }
 
-// ── Library ──
+// – Library –
 var libOpen = false;
 function toggleLib() {
 libOpen=!libOpen;
@@ -1204,7 +1317,7 @@ addTrackFromDef(def,s.id);
 });
 }
 
-// ── Add Track Modal ──
+// – Add Track Modal –
 var _addTab = ‘inst’;
 function showAddModal() { switchAddTab(_addTab, null); document.getElementById(‘addModal’).classList.add(‘on’); }
 function switchAddTab(tab, tabEl) {
@@ -1260,7 +1373,7 @@ addTrackFromDef(def,s.id);
 }
 function closeModal(id) { document.getElementById(id).classList.remove(‘on’); }
 
-// ── FX / Filter ──
+// – FX / Filter –
 var _sfxId=null, _fltId=null;
 function openSfx(id, ev) {
 _sfxId=id; var tr=tracks.find(function(t){return t.id===id;}); if(!tr) return;
@@ -1284,7 +1397,7 @@ pop.classList.toggle(‘on’,tr.fltOn); renderTrkList();
 }
 function closePop(id) { document.getElementById(id).classList.remove(‘on’); }
 
-// ── Export ──
+// – Export –
 function showExportModal() {
 if(!tracks.length){toast(‘Add tracks first!’);return;}
 document.getElementById(‘expInfo’).textContent=tracks.length+’ tracks ‘+state.bpm+‘bpm ‘+state.genre.toUpperCase();
@@ -1337,14 +1450,14 @@ for(var i=0;i<buf.length;i++) for(var c=0;c<nc;c++){var s=Math.max(-1,Math.min(1
 return out;
 }
 
-// ── Toast ──
+// – Toast –
 var _tt;
 function toast(m) {
 var t=document.getElementById(‘toast’); t.textContent=m; t.classList.add(‘sh’);
 clearTimeout(_tt); _tt=setTimeout(function(){t.classList.remove(‘sh’);},2800);
 }
 
-// ── Wire up all buttons ──
+// – Wire up all buttons –
 function initEvents() {
 // Hamburger
 document.getElementById(‘hbg’).addEventListener(‘click’, toggleLib);
@@ -1454,7 +1567,7 @@ if(e.code===‘Escape’){stopAll();closeLib();closeModal(‘addModal’);closeM
 });
 }
 
-// ── Init ──
+// – Init –
 document.addEventListener(‘DOMContentLoaded’, function() {
 initEvents();
 renderLibImport();
