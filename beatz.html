@@ -1172,7 +1172,7 @@ function openDB(cb) {
 function saveToDB(sample) {
   openDB(function(db) {
     var tx = db.transaction("samples","readwrite");
-    tx.objectStore("samples").put({id:sample.id,name:sample.name,role:sample.role,category:sample.category,genre:sample.genre,bpm:sample.bpm,key:sample.key,folder:sample.folder,color:sample.color,buf:sample.buf});
+    tx.objectStore("samples").put({id:sample.id,name:sample.name,role:sample.role,category:sample.category,genre:sample.genre,bpm:sample.bpm,key:sample.key,folder:sample.folder,color:sample.color,rawBuf:sample.rawBuf});
   });
 }
 function deleteFromDB(id) {
@@ -1185,7 +1185,15 @@ function loadFromDB() {
     db.transaction("samples","readonly").objectStore("samples").getAll().onsuccess = function(e) {
       e.target.result.forEach(function(s) {
         if (!state.importedSamples.find(function(x){return x.id===s.id;})) {
+          s.buf = null;
           state.importedSamples.push(s);
+          if (s.rawBuf) {
+            initAC();
+            AC.decodeAudioData(s.rawBuf.slice(0), function(buf){
+              s.buf = buf;
+              renderLib();
+            }, function(){ console.warn('decode fail', s.name); });
+          }
         }
       });
       renderLib();
@@ -1195,43 +1203,48 @@ function loadFromDB() {
 function importSamples(files, category) {
 category=category||'sample'; if(!files||!files.length) return;
 initAC();
-var audioFiles = Array.prototype.filter.call(files, function(f){return f.type.indexOf('audio/')===0;});
+var audioFiles = Array.prototype.filter.call(files, function(f){
+  if (f.type && f.type.indexOf('audio/')===0) return true;
+  var ext = (f.name||'').split('.').pop().toLowerCase();
+  return ['mp3','wav','ogg','m4a','aac','flac','aiff','aif','wma'].indexOf(ext) >= 0;
+});
 if(!audioFiles.length){toast('No audio files found');return;}
 toast('Importing '+audioFiles.length+' files…');
 audioFiles.forEach(function(f){
-var reader=new FileReader();
-reader.onload=function(e){
-AC.decodeAudioData(e.target.result.slice(0), function(buf){
-var id='s_'+Date.now()+'*'+rnd(999999), fn=f.name.toLowerCase();
-var folder=f.webkitRelativePath?f.webkitRelativePath.split('/').slice(0,-1).join('/'):category;
-var role='custom';
-if(category==='sfx') role='sfx';
-else if(/kick|bd/.test(fn)) role='kick';
-else if(/snare|sd/.test(fn)) role='snare';
-else if(/clap|snap/.test(fn)) role='clap';
-else if(/open.hat|ohat|ohh/.test(fn)) role='ohat';
-else if(/hat|hh|hihat/.test(fn)) role='hihat';
-else if(/perc|tom|shaker/.test(fn)) role='perc';
-else if(/808|sub.bass/.test(fn)) role='bass';
-else if(/bass|pluck/.test(fn)) role='bass2';
-else if(/chord|pad|piano/.test(fn)) role='chord';
-else if(/atm|ambient/.test(fn)) role='atm';
-else if(/mel|lead|synth/.test(fn)) role='mel';
-else if(category==='keyboard') role='mel';
-else if(category==='drum_kit') role='perc';
-var genre=state.genre;
-if(/trap/.test(fn)) genre='trap';
-else if(/rnb/.test(fn)) genre='rnb';
-else if(/lofi/.test(fn)) genre='lofi';
-else if(/hiphop/.test(fn)) genre='hiphop';
-var bpmM=fn.match(/(\d{2,3})bpm/), bpm=bpmM?parseInt(bpmM[1]):state.bpm;
-var keyM=fn.match(/[\s_-]([a-g]#?b?)[\s*-]/i), key=keyM?keyM[1].toUpperCase():state.key;
-state.importedSamples.push({id:id,name:f.name.replace(/.[^/.]+$/,''),buf:buf,role:role,category:category,genre:genre,bpm:bpm,key:key,folder:folder,color:ROLE_COLORS[role]||'#98989e'});
-         saveToDB(state.importedSamples[state.importedSamples.length-1]);
-renderLib();
-}, function(){console.warn('decode fail',f.name);});
-};
-reader.readAsArrayBuffer(f);
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var raw=e.target.result.slice(0);
+    AC.decodeAudioData(raw, function(buf){
+      var id='s_'+Date.now()+'*'+rnd(999999), fn=f.name.toLowerCase();
+      var folder=f.webkitRelativePath?f.webkitRelativePath.split('/').slice(0,-1).join('/') : category;
+      var role='custom';
+      if(category==='sfx') role='sfx';
+      else if(/kick|bd/.test(fn)) role='kick';
+      else if(/snare|sd/.test(fn)) role='snare';
+      else if(/clap|snap/.test(fn)) role='clap';
+      else if(/open.hat|ohat|ohh/.test(fn)) role='ohat';
+      else if(/hat|hh|hihat/.test(fn)) role='hihat';
+      else if(/perc|tom|shaker/.test(fn)) role='perc';
+      else if(/808|sub.bass/.test(fn)) role='bass';
+      else if(/bass|pluck/.test(fn)) role='bass2';
+      else if(/chord|pad|piano/.test(fn)) role='chord';
+      else if(/atm|ambient/.test(fn)) role='atm';
+      else if(/mel|lead|synth/.test(fn)) role='mel';
+      else if(category==='keyboard') role='mel';
+      else if(category==='drum_kit') role='perc';
+      var genre=state.genre;
+      if(/trap/.test(fn)) genre='trap';
+      else if(/rnb/.test(fn)) genre='rnb';
+      else if(/lofi/.test(fn)) genre='lofi';
+      else if(/hiphop/.test(fn)) genre='hiphop';
+      var bpmM=fn.match(/(\d{2,3})bpm/), bpm=bpmM?parseInt(bpmM[1]):state.bpm;
+      var keyM=fn.match(/[\s_-]([a-g]#?b?)[\s*-]/i), key=keyM?keyM[1].toUpperCase():state.key;
+      state.importedSamples.push({id:id,name:f.name.replace(/.[^/.]+$/,''),buf:buf,rawBuf:raw,role:role,category:category,genre:genre,bpm:bpm,key:key,folder:folder,color:ROLE_COLORS[role]||'#98989e'});
+      saveToDB(state.importedSamples[state.importedSamples.length-1]);
+      renderLib();
+    }, function(){console.warn('decode fail',f.name);});
+  };
+  reader.readAsArrayBuffer(f);
 });
 }
 function deleteSample(id) { deleteFromDB(id);
